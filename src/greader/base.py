@@ -47,8 +47,9 @@ def vcfreader(vcfPath:str,chunksize=10_000,ref_adjust:str=None) -> pd.DataFrame:
         vcf_chunk:pd.DataFrame = vcf_chunk.set_index([0,1]).fillna('-9')
         ref_alt = vcf_chunk.iloc[:,:2]
         def transG(col:pd.Series):
-            vcf_transdict = {'0/0':0,'1/1':2,'0/1':1,'1/0':1,'./.':-9,'0|0':0,'1|1':2,'0|1':1,'1|0':1,'.|.':-9,'2':2,'1':1,'0':0,'.':-9}
-            return col.map(vcf_transdict).astype('int8')
+            vcf_transdict = {'0/0':0,'1/1':2,'0/1':1,'1/0':1,'./.':-9, # Non-phased genotype
+                             '0|0':0,'1|1':2,'0|1':1,'1|0':1,'.|.':-9} # Phased genotype
+            return col.map(vcf_transdict).fillna(-9).astype('int8')
         vcf_chunk = vcf_chunk.iloc[:,2:].apply(transG,axis=0)
         vcf_chunk = pd.concat([ref_alt,vcf_chunk],axis=1)
         genotype.append(vcf_chunk)
@@ -106,14 +107,31 @@ def hmpreader(hmp:str,sample_start:int=None,chr:str='chrom',ps:str='position',re
         genotype.columns = ['REF','ALT']+genotype.columns[2:].to_list()
     return genotype
 
-def genotype2vcf(geno:pd.DataFrame,outPath:str=None):
+def genotype2vcf(geno:pd.DataFrame,outPath:str=None,chunksize:int=10_000):
     import warnings
     warnings.filterwarnings('ignore')
     vcf_head = 'ID QUAL FILTER INFO FORMAT'.split(' ')
     geno = geno.reset_index()
     geno_ = geno.iloc[:,4:].copy()
-    geno_[geno_<0] = '.'
+    geno_[geno_<0] = -9
+    samples = geno_.columns
     geno.columns = ['#CHROM','POS','REF','ALT']+geno.columns[4:].tolist()
     vcf = pd.DataFrame([['.','.','.','PR','GT'] for i in geno.index],columns=vcf_head)
     vcf = pd.concat([geno[['#CHROM','POS']],vcf['ID'],geno[['REF','ALT']],vcf[['QUAL','FILTER','INFO','FORMAT']],geno_],axis=1)
-    vcf.to_csv(f'{outPath}.vcf',sep='\t',index=None)
+    def transG(col:pd.Series):
+        vcf_transdict = {0:'0/0',2:'1/1',1:'0/1',-9:'./.'}
+        return col.map(vcf_transdict).fillna('./.')
+    if chunksize >= vcf.shape[0]:
+        vcf[samples] = vcf[samples].apply(transG,axis=0)
+        vcf.to_csv(f'{outPath}.vcf',sep='\t',index=None)
+    else:
+        for i in range(0,vcf.shape[0],chunksize):
+            vcf_chunk = vcf.iloc[i:i+chunksize,:]
+            vcf_chunk[samples] = vcf_chunk[samples].apply(transG,axis=0)
+            if i == 0:
+                vcf_chunk.to_csv(f'{outPath}.vcf',sep='\t',index=None)
+            else:
+                vcf_chunk.to_csv(f'{outPath}.vcf',sep='\t',index=None,header=False,mode='a')
+        
+if __name__ == "__main__":
+    pass
