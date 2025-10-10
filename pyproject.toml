@@ -1,6 +1,6 @@
 [project]
 name = "greader"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
     "pandas",
     "bed-reader>=1.0.6",
