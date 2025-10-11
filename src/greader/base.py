@@ -114,7 +114,7 @@ def vcfinfo():
 ##fileDate={alltime.tm_year}{alltime.tm_mon}{alltime.tm_mday}
 ##source="greader.1.1"
 ##INFO=<ID=PR,Number=0,Type=Flag,Description="Provisional reference allele, may not be based on real reference genome">
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">'''
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'''
     return vcf_info
 
 def genotype2vcf(geno:pd.DataFrame,outPath:str=None,chunksize:int=10_000):
@@ -131,7 +131,7 @@ def genotype2vcf(geno:pd.DataFrame,outPath:str=None,chunksize:int=10_000):
     def transG(col:pd.Series):
         vcf_transdict = {0:'0/0',2:'1/1',1:'0/1',-9:'./.'}
         return col.map(vcf_transdict).fillna('./.')
-    with open(f'{outPath},vcf','w') as f:
+    with open(f'{outPath}.vcf','w') as f:
         f.writelines(vcfinfo())
     if chunksize >= vcf.shape[0]:
         vcf[samples] = vcf[samples].apply(transG,axis=0)
