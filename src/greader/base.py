@@ -107,6 +107,16 @@ def hmpreader(hmp:str,sample_start:int=None,chr:str='chrom',ps:str='position',re
         genotype.columns = ['REF','ALT']+genotype.columns[2:].to_list()
     return genotype
 
+def vcfinfo():
+    import time
+    alltime = time.localtime()
+    vcf_info = f'''##fileformat=VCFv4.2
+##fileDate={alltime.tm_year}{alltime.tm_mon}{alltime.tm_mday}
+##source="greader.1.1"
+##INFO=<ID=PR,Number=0,Type=Flag,Description="Provisional reference allele, may not be based on real reference genome">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">'''
+    return vcf_info
+
 def genotype2vcf(geno:pd.DataFrame,outPath:str=None,chunksize:int=10_000):
     import warnings
     warnings.filterwarnings('ignore')
@@ -121,15 +131,17 @@ def genotype2vcf(geno:pd.DataFrame,outPath:str=None,chunksize:int=10_000):
     def transG(col:pd.Series):
         vcf_transdict = {0:'0/0',2:'1/1',1:'0/1',-9:'./.'}
         return col.map(vcf_transdict).fillna('./.')
+    with open(f'{outPath},vcf','w') as f:
+        f.writelines(vcfinfo())
     if chunksize >= vcf.shape[0]:
         vcf[samples] = vcf[samples].apply(transG,axis=0)
-        vcf.to_csv(f'{outPath}.vcf',sep='\t',index=None)
+        vcf.to_csv(f'{outPath}.vcf',sep='\t',index=None,mode='a')
     else:
         for i in range(0,vcf.shape[0],chunksize):
             vcf_chunk = vcf.iloc[i:i+chunksize,:]
             vcf_chunk[samples] = vcf_chunk[samples].apply(transG,axis=0)
             if i == 0:
-                vcf_chunk.to_csv(f'{outPath}.vcf',sep='\t',index=None)
+                vcf_chunk.to_csv(f'{outPath}.vcf',sep='\t',index=None,mode='a')
             else:
                 vcf_chunk.to_csv(f'{outPath}.vcf',sep='\t',index=None,header=False,mode='a')
         

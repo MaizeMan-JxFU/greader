@@ -1,6 +1,6 @@
 # from . import base
-from .base import *
+# from .base import *
 
 
 __name__ = 'Genotype Reader'
-__version__ = '1.0'
+__version__ = '1.1'
