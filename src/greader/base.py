@@ -111,7 +111,7 @@ def genotype2vcf(geno:pd.DataFrame,outPath:str=None,chunksize:int=10_000):
     import warnings
     warnings.filterwarnings('ignore')
     vcf_head = 'ID QUAL FILTER INFO FORMAT'.split(' ')
-    geno = geno.reset_index()
+    geno = geno.reset_index() if geno.columns[0] != "#CHROM" else geno
     geno_ = geno.iloc[:,4:].copy()
     geno_[geno_<0] = -9
     samples = geno_.columns
