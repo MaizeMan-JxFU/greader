@@ -124,6 +124,11 @@ def genotype2vcf(geno:pd.DataFrame,outPath:str=None,chunksize:int=10_000):
     geno = geno.reset_index() if geno.columns[0] != "#CHROM" else geno
     geno_ = geno.iloc[:,4:].copy()
     geno_[geno_<0] = -9
+    sample_duploc = geno_.columns.duplicated()
+    if sample_duploc.sum()>0:
+        dupsamples = ','.join(geno_.columns[sample_duploc].unique())
+        print(f'Duplicated samples: {dupsamples}')
+        geno_ = geno_.loc[:,~sample_duploc]
     samples = geno_.columns
     geno.columns = ['#CHROM','POS','REF','ALT']+geno.columns[4:].tolist()
     vcf = pd.DataFrame([['.','.','.','PR','GT'] for i in geno.index],columns=vcf_head)
