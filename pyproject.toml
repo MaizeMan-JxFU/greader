@@ -1,5 +1,5 @@
 [project]
-name = "greader"
+name = "gfreader"
 version = "1.0.1"
 dependencies = [
     "pandas",
